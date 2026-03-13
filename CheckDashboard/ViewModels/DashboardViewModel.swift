@@ -11,13 +11,14 @@ import Combine
 @MainActor
 final class DashboardViewModel : ObservableObject {
     @Published private(set) var cards: [DashboardCardModel] = []
+    private var runTokens: [CheckKind: UUID] = [:]
     
     init() {
         cards = [
-            .init(id: "firewall", title: "Firewall", subtitle: "Enabled & active", systemImage: "shield.fill", status: .idle, lastCheckedAt: nil),
-            .init(id: "filevault", title: "FileVault", subtitle: "Off — turn it on", systemImage: "lock.fill", status: .idle, lastCheckedAt: nil),
-            .init(id: "updates", title: "Auto Updates", subtitle: "Configured", systemImage: "arrow.triangle.2.circlepath", status: .idle, lastCheckedAt: nil),
-            .init(id: "gatekeeper", title: "App Install Safety", subtitle: "App Store + Identified", systemImage: "checkmark.seal.fill", status: .idle, lastCheckedAt: nil),
+            .init(id: .firewall, title: "Firewall", subtitle: "Enabled & active", systemImage: "shield.fill", status: .idle, lastCheckedAt: nil),
+            .init(id: .filevault, title: "FileVault", subtitle: "Off — turn it on", systemImage: "lock.fill", status: .idle, lastCheckedAt: nil),
+            .init(id: .updates, title: "Auto Updates", subtitle: "Configured", systemImage: "arrow.triangle.2.circlepath", status: .idle, lastCheckedAt: nil),
+            .init(id: .gatekeeper, title: "App Install Safety", subtitle: "App Store + Identified", systemImage: "checkmark.seal.fill", status: .idle, lastCheckedAt: nil),
         ]
     }
     
@@ -27,15 +28,19 @@ final class DashboardViewModel : ObservableObject {
         }
     }
     
-    func run(id: String) {
+    func run(id: CheckKind) {
         guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
         cards[index] = update(cards[index], status: .running)
+        let token = UUID()
+        runTokens[id] = token
         
         Task {
-            if id == "firewall" {
+            switch id {
+            case .firewall:
                 let status = await FirewallCheck.readFirewallStatus()
                 await MainActor.run {
                     guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
+                    guard self.runTokens[id] == token else { return }
                     
                     switch status {
                     case .enabled:
@@ -54,7 +59,7 @@ final class DashboardViewModel : ObservableObject {
                             checkedAt: Date()
                         )
                         
-                    case .unknown(let msg):
+                    case .unknown:
                         self.cards[index] = self.updateSubtitleAndStatus(
                             self.cards[index],
                             subtitle: "Unknown",
@@ -62,11 +67,15 @@ final class DashboardViewModel : ObservableObject {
                             checkedAt: Date()
                         )
                     }
+                    
+                    self.runTokens[id] = nil
                 }
-            } else if id == "filevault" {
+                
+            case .filevault:
                 let status = await FileVaultCheck.getStatus()
                 await MainActor.run {
                     guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
+                    guard self.runTokens[id] == token else { return }
                     
                     switch status {
                     case .on:
@@ -97,18 +106,22 @@ final class DashboardViewModel : ObservableObject {
                             status: .idle,
                             checkedAt: Date())
                                 
-                    case .unknown(_):
+                    case .unknown:
                         self.cards[index] = self.updateSubtitleAndStatus(
                             self.cards[index],
-                            subtitle: "Off",
-                            status: .idle,
+                            subtitle: "Unknown",
+                            status: .warning,
                             checkedAt: Date())
                     }
+                    
+                    self.runTokens[id] = nil
                 }
-            } else if id == "gatekeeper" {
+                
+            case .gatekeeper:
                 let status = await GatekeeperCheck.getStatus()
                 await MainActor.run {
                     guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
+                    guard self.runTokens[id] == token else { return }
 
                     switch status {
                     case .enabled:
@@ -123,18 +136,22 @@ final class DashboardViewModel : ObservableObject {
                             subtitle: "Disabled",
                             status: .warning,
                             checkedAt: Date())
-                    case .unknown(_):
+                    case .unknown:
                         self.cards[index] = self.updateSubtitleAndStatus(
                             self.cards[index],
                             subtitle: "Unknown",
                             status: .warning,
                             checkedAt: Date())
                     }
+                    
+                    self.runTokens[id] = nil
                 }
-            } else if id == "updates" {
+                
+            case .updates:
                 let status = await AutoUpdatesCheck.getStatus()
                 await MainActor.run {
                     guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
+                    guard self.runTokens[id] == token else { return }
 
                     switch status {
                     case .enabled:
@@ -149,13 +166,15 @@ final class DashboardViewModel : ObservableObject {
                             subtitle: "Disabled",
                             status: .warning,
                             checkedAt: Date())
-                    case .unknown(_):
+                    case .unknown:
                         self.cards[index] = self.updateSubtitleAndStatus(
                             self.cards[index],
                             subtitle: "Unknown",
                             status: .warning,
                             checkedAt: Date())
                     }
+                    
+                    self.runTokens[id] = nil
                 }
             }
         }

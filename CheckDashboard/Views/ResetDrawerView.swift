@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct ResetDrawerView: View {
     let onClose: () -> Void
@@ -156,7 +159,9 @@ struct ResetDrawerView: View {
         \(done.isEmpty ? "—" : done.map { "• \($0)" }.joined(separator: "\n"))
         """
 
+#if canImport(AppKit)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+#endif
     }
 }
