@@ -30,7 +30,7 @@ struct ContentView: View {
             case .history:
                 Text("History")
             case .settings:
-                Text("Settings")
+                SettingsView()
             }
         }
         .padding()

@@ -7,10 +7,8 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct DashboardView: View {
-    @State private var isResetOpen = true // set true just to see it immediately
+    @State private var isResetOpen = false
     @StateObject private var vm = DashboardViewModel()
 
     var body: some View {

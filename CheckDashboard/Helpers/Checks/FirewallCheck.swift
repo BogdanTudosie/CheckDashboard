@@ -13,13 +13,13 @@ enum FirewallStatus {
     case unknown(String)
 }
 
-enum FirwallCheck {
+enum FirewallCheck {
     static func readFirewallStatus() async -> FirewallStatus {
         do {
             let out = try await Shell.run("/usr/libexec/ApplicationFirewall/socketfilterfw",
                                           ["--getglobalstate"])
             
-            if let state = parseFirewallStatus(out){
+            if let state = parseFirewallStatus(out) {
                 switch state {
                 case 0: return .disabled
                 case 1: return .enabled

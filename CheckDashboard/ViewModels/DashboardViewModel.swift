@@ -33,7 +33,7 @@ final class DashboardViewModel : ObservableObject {
         
         Task {
             if id == "firewall" {
-                let status = await FirwallCheck.readFirewallStatus()
+                let status = await FirewallCheck.readFirewallStatus()
                 await MainActor.run {
                     guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
                     
@@ -63,15 +63,100 @@ final class DashboardViewModel : ObservableObject {
                         )
                     }
                 }
-            }
-            
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            await MainActor.run {
-                guard let idx = self.cards.firstIndex(where: { $0.id == id }) else { return }
-                
-                // simple fake: mark ok except filevault warning
-                let newStatus: DashboardCardModel.Status = (id == "filevault") ? .warning : .ok
-                self.cards[idx] = self.update(self.cards[idx], status: newStatus, checkedAt: Date())
+            } else if id == "filevault" {
+                let status = await FileVaultCheck.getStatus()
+                await MainActor.run {
+                    guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
+                    
+                    switch status {
+                    case .on:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "On",
+                            status: .ok,
+                            checkedAt: Date())
+                        
+                    case .encrypting:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Encrypting...",
+                            status: .running,
+                            checkedAt: Date())
+                        
+                    case .decrypting:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Decrypting...",
+                            status: .running,
+                            checkedAt: Date())
+                        
+                    case .off:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Off",
+                            status: .idle,
+                            checkedAt: Date())
+                                
+                    case .unknown(_):
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Off",
+                            status: .idle,
+                            checkedAt: Date())
+                    }
+                }
+            } else if id == "gatekeeper" {
+                let status = await GatekeeperCheck.getStatus()
+                await MainActor.run {
+                    guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
+
+                    switch status {
+                    case .enabled:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Enabled",
+                            status: .ok,
+                            checkedAt: Date())
+                    case .disabled:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Disabled",
+                            status: .warning,
+                            checkedAt: Date())
+                    case .unknown(_):
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Unknown",
+                            status: .warning,
+                            checkedAt: Date())
+                    }
+                }
+            } else if id == "updates" {
+                let status = await AutoUpdatesCheck.getStatus()
+                await MainActor.run {
+                    guard let index = self.cards.firstIndex(where: { $0.id == id }) else { return }
+
+                    switch status {
+                    case .enabled:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Enabled",
+                            status: .ok,
+                            checkedAt: Date())
+                    case .disabled:
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Disabled",
+                            status: .warning,
+                            checkedAt: Date())
+                    case .unknown(_):
+                        self.cards[index] = self.updateSubtitleAndStatus(
+                            self.cards[index],
+                            subtitle: "Unknown",
+                            status: .warning,
+                            checkedAt: Date())
+                    }
+                }
             }
         }
     }
