@@ -25,7 +25,7 @@ struct DashboardView: View {
                         ForEach(vm.cards) { card in
                             CardView(model: card,
                                      onRun: { vm.run(id: card.id) },
-                                     onOpenSettings: {})
+                                     onOpenSettings: { openSettings(kind: card.id) })
                         }
                     }
                 }
@@ -75,6 +75,19 @@ struct DashboardView: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
+    }
+    
+    private func openSettings(kind: CheckKind) {
+        switch kind {
+        case .firewall:
+            SystemSettings.openFirewall()
+        case .filevault:
+            SystemSettings.openFileVault()
+        case .updates:
+            break
+        case .gatekeeper:
+            break
+        }
     }
 }
 

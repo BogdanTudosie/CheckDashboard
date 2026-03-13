@@ -10,7 +10,7 @@ import Foundation
 struct DashboardCardModel: Identifiable {
     enum Status { case idle, running, ok, warning, bad }
 
-    let id: String
+    let id: CheckKind
     let title: String
     let subtitle: String
     let systemImage: String
@@ -20,7 +20,7 @@ struct DashboardCardModel: Identifiable {
 
 extension DashboardCardModel {
     static func previewModel() -> DashboardCardModel {
-        let model = DashboardCardModel(id: "1", title: "FileVault", subtitle: "FileVault Running State", systemImage: "shield.fill", status: .ok, lastCheckedAt: .now)
+        let model = DashboardCardModel(id: CheckKind.filevault, title: "FileVault", subtitle: "FileVault Running State", systemImage: "shield.fill", status: .ok, lastCheckedAt: .now)
         return model
     }
 }
